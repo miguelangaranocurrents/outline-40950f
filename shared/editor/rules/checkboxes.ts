@@ -76,10 +76,21 @@ export default function markdownItCheckbox(md: MarkdownIt): void {
         // convert the enclosing list tokens, which may not be adjacent when
         // the checkbox item is preceded by plain items or contains nested lists.
         const listLevel = tokens[i - 2].level - 1;
+        // Walk backwards, skipping over any sibling lists that precede this
+        // one, so that we match the opening token of this list and not theirs.
+        let closedListsBefore = 0;
         for (let k = i - 3; k >= 0; k--) {
-          if (tokens[k].level === listLevel && isListOpen(tokens[k])) {
-            tokens[k].type = "checkbox_list_open";
-            break;
+          if (tokens[k].level !== listLevel) {
+            continue;
+          }
+          if (isListClose(tokens[k])) {
+            closedListsBefore++;
+          } else if (isListOpen(tokens[k])) {
+            if (closedListsBefore === 0) {
+              tokens[k].type = "checkbox_list_open";
+              break;
+            }
+            closedListsBefore--;
           }
         }
         for (let k = i + 1; k < tokens.length; k++) {
